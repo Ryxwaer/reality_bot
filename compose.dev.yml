@@ -21,6 +21,3 @@ services:
 networks:
   nginx-proxy-manager_default:
     driver: bridge
-
-volumes:
-  mongo_data:

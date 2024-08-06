@@ -7,6 +7,7 @@ services:
         - DB_URI=${DB_URI}
         - EMAIL_USER=${EMAIL_USER}
         - EMAIL_PASS=${EMAIL_PASS}
+    pull_policy: build
     image: reality-bot:latest
     environment:
       DB_URI: ${DB_URI}
@@ -20,6 +21,3 @@ services:
 networks:
   nginx-proxy-manager_default:
     external: true
-
-volumes:
-  mongo_data:
