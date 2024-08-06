@@ -52,7 +52,7 @@ def fetch_listings(url):
             "id": id,
             "name": estate["name"],
             "locality": estate["locality"],
-            "price": estate["price"],
+            "price": "{:,}".format(estate["price"]).replace(",", " "),
             "features": estate.get("labelsAll", [])[0],
             "url": extract_urls(id, estate),
             "scraped": current_date,
