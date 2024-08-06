@@ -1,0 +1,26 @@
+services:
+  reality-bot:
+    container_name: reality-bot
+    build:
+      context: .
+      args:
+        - DB_URI=${DB_URI}
+        - EMAIL_USER=${EMAIL_USER}
+        - EMAIL_PASS=${EMAIL_PASS}
+    image: reality-bot:latest
+    environment:
+      DB_URI: ${DB_URI}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - nginx-proxy-manager_default
+
+networks:
+  nginx-proxy-manager_default:
+    driver: bridge
+
+volumes:
+  mongo_data:

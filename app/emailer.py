@@ -1,23 +1,41 @@
-# app/emailer.py
+import logging
 import smtplib
 from email.mime.text import MIMEText
-from typing import List, Dict
+from email.mime.multipart import MIMEMultipart
+import os
+from dotenv import load_dotenv
 
-def send_email(subject: str, body: str, to: str, from_email: str, smtp_server: str, smtp_port: int, smtp_user: str, smtp_password: str):
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = from_email
-    msg['To'] = to
+load_dotenv()
+logger = logging.getLogger(__name__)
 
-    with smtplib.SMTP(smtp_server, smtp_port) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        server.sendmail(from_email, [to], msg.as_string())
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-def notify_new_listings(new_listings: List[Dict], to_email: str, from_email: str, smtp_server: str, smtp_port: int, smtp_user: str, smtp_password: str):
-    if not new_listings:
-        return
 
-    subject = "New Real Estate Listings"
-    body = "\n\n".join([str(listing) for listing in new_listings])
-    send_email(subject, body, to_email, from_email, smtp_server, smtp_port, smtp_user, smtp_password)
+class Emailer:
+    def __init__(self):
+        self.transporter = smtplib.SMTP('smtp.gmail.com', 587)
+        self.transporter.starttls()
+        self.transporter.login(EMAIL_USER, EMAIL_PASS)
+
+    def send_email(self, config, new_listings):
+        recipients = config["recipients"].split(',')
+        subject = f"Bazos: nove inzeraty - {config['subject']}"
+        message = "Nove inzeraty:\n\n" + "\n\n".join(
+            [f"[{listing['name']}] {listing['price']} CZK\n{listing['url']}\n" for _, listing in new_listings.iterrows()]
+        )
+
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = EMAIL_USER
+            msg['To'] = ", ".join(recipients)
+            msg['Subject'] = subject
+
+            msg.attach(MIMEText(message, 'plain'))
+
+            self.transporter.sendmail(EMAIL_USER, recipients, msg.as_string())
+            logger.debug("Email sent successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Email sending failed: {e}")
+            return False

@@ -1,43 +1,95 @@
-# app/scraper.py
+from typing import List
+import re
+from zoneinfo import ZoneInfo
 import requests
-import pymongo
+import pandas as pd
 from datetime import datetime
-from typing import List, Dict
+from app.db.database import estates_collection, config_collection
+from app.emailer import Emailer
+import logging
 
-class Scraper:
-    def __init__(self, db_uri: str, db_name: str, collection_name: str):
-        self.client = pymongo.MongoClient(db_uri)
-        self.db = self.client[db_name]
-        self.collection = self.db[collection_name]
+emailer = Emailer()
+logger = logging.getLogger(__name__)
 
-    def fetch_data_from_api(self) -> List[Dict]:
-        url = "https://www.sreality.cz/api/v2/estates"
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()["_embedded"]["estates"]
-        else:
-            response.raise_for_status()
 
-    def get_all_data_from_db(self) -> List[Dict]:
-        return list(self.collection.find())
+def extract_urls(id, estate):
+    seo = estate.get("seo", {})
+    locality = seo.get("locality", "")
+    name = estate.get("name", "")
+    type = get_type_from_name(name)
+    if locality and name and id:
+        return f"https://www.sreality.cz/detail/prodej/byt/{type}/{locality}/{id}"
+    return ""
 
-    def get_new_listings(self) -> List[Dict]:
-        api_data = self.fetch_data_from_api()
-        db_data = self.get_all_data_from_db()
 
-        db_ids = {item["hash_id"] for item in db_data}
-        new_listings = [item for item in api_data if item["hash_id"] not in db_ids]
+def fetch_new_listings(url: str) -> List[dict]:
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    # throw error
+    response.raise_for_status()
 
-        return new_listings
 
-    def store_new_listings(self, listings: List[Dict]):
-        if listings:
-            for listing in listings:
-                listing["scraped_at"] = datetime.utcnow()
-            self.collection.insert_many(listings)
+def get_type_from_name(name):
+    # Targets 1+1, 2+kk and similar patterns
+    pattern = r"\b(\d+\+\S+)\b"
+    try:
+        type = re.findall(pattern, name)[0]
+    except IndexError:
+        type = "Unknown"
+    return type
 
-    def update_listings(self):
-        new_listings = self.get_new_listings()
-        self.store_new_listings(new_listings)
-        return new_listings
-app/scheduler.py
+
+def fetch_listings(url):
+    data = fetch_new_listings(url)
+    estates = data["_embedded"]["estates"]
+    current_date = datetime.now(ZoneInfo("Europe/Bratislava")).strftime("%Y-%m-%dT%H:%M:%S%z")
+    estate_data = []
+
+    for estate in estates:
+        id = estate.get("hash_id", "")
+        estate_info = {
+            "id": id,
+            "name": estate["name"],
+            "locality": estate["locality"],
+            "price": estate["price"],
+            "features": estate.get("labelsAll", [])[0],
+            "url": extract_urls(id, estate),
+            "scraped": current_date,
+        }
+        estate_data.append(estate_info)
+
+    df_estates = pd.DataFrame(estate_data)
+    return df_estates
+
+
+def get_existing_listings():
+    existing_listings = list(estates_collection.find({}, {"_id": 0}))
+    df_existing = pd.DataFrame(existing_listings)
+    return df_existing
+
+
+def save_new_listings(new_listings):
+    estates_collection.insert_many(new_listings.to_dict('records'))
+
+
+def scrape_and_compare(config):
+    current_listings = fetch_listings(config['url'])
+    existing_listings = get_existing_listings()
+
+    new_listings = current_listings[~current_listings['id'].isin(existing_listings['id'])] \
+        if len(existing_listings) else current_listings
+
+    if new_listings.empty:
+        return
+
+    if emailer.send_email(config, new_listings):
+        save_new_listings(new_listings)
+        logger.info(f"saved {len(new_listings)} newly found listings.")
+
+
+def process_by_config():
+    logger.debug("Processing started")
+    configs = config_collection.find({})
+    for config in configs:
+        scrape_and_compare(config)

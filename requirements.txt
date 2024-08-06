@@ -2,4 +2,8 @@ requests~=2.32.3
 aiosmtplib~=3.0.2
 APScheduler~=3.10.4
 fastapi~=0.111.1
-pymongo
+pymongo~=4.8.0
+python-dotenv~=1.0.1
+limiter~=0.5.0
+pydantic~=2.8.2
+pandas~=2.2.2
