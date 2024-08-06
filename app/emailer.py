@@ -20,7 +20,7 @@ class Emailer:
 
     def send_email(self, config, new_listings):
         recipients = config["recipients"].split(',')
-        subject = f"Bazos: nove inzeraty - {config['subject']}"
+        subject = f"SReality: nove inzeraty - {config['subject']}"
         message = "Nove inzeraty:\n\n" + "\n\n".join(
             [f"[{listing['name']}] {listing['price']} CZK\n{listing['url']}\n" for _, listing in new_listings.iterrows()]
         )
