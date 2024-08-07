@@ -78,12 +78,11 @@ def save_new_listings(new_listings):
     estates_collection.insert_many(new_listings.to_dict('records'))
 
 
-def scrape_and_compare(config):
+def scrape_and_compare(config, existing_ids):
     current_listings = fetch_listings(config['url'])
-    existing_listings = get_existing_listings()
 
-    new_listings = current_listings[~current_listings['id'].isin(existing_listings['id'])] \
-        if len(existing_listings) else current_listings
+    new_listings = current_listings[~current_listings['id'].isin(existing_ids)] \
+        if len(existing_ids) else current_listings
 
     if new_listings.empty:
         return
@@ -95,7 +94,11 @@ def scrape_and_compare(config):
 
 def process_by_config():
     logger.debug("Processing started")
+
+    existing_listings = get_existing_listings()
+    existing_ids = existing_listings['id'].unique()
+
     configs = config_collection.find({})
     for config in configs:
-        scrape_and_compare(config)
+        scrape_and_compare(config, existing_ids)
     emailer.disconnect()
