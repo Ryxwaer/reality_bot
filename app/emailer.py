@@ -27,6 +27,15 @@ class Emailer:
             logger.error(f"Failed to connect to SMTP server: {e}")
             self.transporter = None
 
+    def disconnect(self):
+        if self.transporter:
+            try:
+                self.transporter.quit()
+                logger.debug("SMTP connection closed")
+            except Exception as e:
+                logger.error(f"Failed to close SMTP connection: {e}")
+            self.transporter = None
+
     def send_email(self, config, new_listings):
         if not self.transporter:
             self.connect()
@@ -37,7 +46,8 @@ class Emailer:
         recipients = config["recipients"].split(',')
         subject = f"SReality: nove inzeraty - {config['subject']}"
         message = "Nove inzeraty:\n\n" + "\n\n".join(
-            [f"[{listing['name']}] {listing['price']} CZK\n{listing['url']}\n" for _, listing in new_listings.iterrows()]
+            [f"{listing['name']} : {listing['price']} CZK\n{listing['url']}\n - {listing['locality']} {listing['features']}]\n"
+             for _, listing in new_listings.iterrows()]
         )
 
         try:
@@ -51,6 +61,7 @@ class Emailer:
             self.transporter.sendmail(EMAIL_USER, recipients, msg.as_string())
             logger.debug("Email sent successfully")
             return True
+
         except smtplib.SMTPException as e:
             logger.error(f"Email sending failed: {e}")
             self.transporter = None  # Reset the connection

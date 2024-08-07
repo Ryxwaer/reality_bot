@@ -98,3 +98,4 @@ def process_by_config():
     configs = config_collection.find({})
     for config in configs:
         scrape_and_compare(config)
+    emailer.disconnect()
