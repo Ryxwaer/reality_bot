@@ -96,7 +96,7 @@ def process_by_config():
     logger.debug("Processing started")
 
     existing_listings = get_existing_listings()
-    existing_ids = existing_listings['id'].unique()
+    existing_ids = existing_listings['id'].unique() if len(existing_listings) else []
 
     configs = config_collection.find({})
     for config in configs:
