@@ -58,7 +58,7 @@ def fetch_listings(url):
             "name": estate["name"],
             "locality": estate["locality"],
             "price": "{:,}".format(estate["price"]).replace(",", " "),
-            "features": estate.get("labelsAll", [])[0],
+            "features": ', '.join(estate.get("labelsAll", [])[0]),
             "url": extract_urls(id, estate),
             "scraped": current_date,
         }

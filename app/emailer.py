@@ -59,6 +59,7 @@ class Emailer:
                 return False
 
         recipients = config["recipients"].split(',')
+        recipients = [r.strip() for r in recipients]
         subject = f"SReality: nove inzeraty - {config['subject']}"
         message = compose_email_body(new_listings)
 
