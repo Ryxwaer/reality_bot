@@ -5,13 +5,19 @@ services:
       context: .
       args:
         - DB_URI=${DB_URI}
-        - EMAIL_USER=${EMAIL_USER}
-        - EMAIL_PASS=${EMAIL_PASS}
+        - MAIL_SMTP_LOGIN=${MAIL_SMTP_LOGIN}
+        - MAIL_SMTP_PASSWORD=${MAIL_SMTP_PASSWORD}
+        - MAIL_SMTP_SERVER=${MAIL_SMTP_SERVER}
+        - MAIL_SMTP_PORT=${MAIL_SMTP_PORT}
+        - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL}
     image: reality-bot:latest
     environment:
       DB_URI: ${DB_URI}
-      EMAIL_USER: ${EMAIL_USER}
-      EMAIL_PASS: ${EMAIL_PASS}
+      MAIL_SMTP_LOGIN: ${MAIL_SMTP_LOGIN}
+      MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD}
+      MAIL_SMTP_SERVER: ${MAIL_SMTP_SERVER}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL}
     ports:
       - "8000:8000"
     restart: unless-stopped

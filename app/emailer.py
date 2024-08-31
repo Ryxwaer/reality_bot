@@ -8,8 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
+MAIL_SMTP_SERVER = os.getenv("MAIL_SMTP_SERVER")
+MAIL_SMTP_PORT = int(os.getenv("MAIL_SMTP_PORT", 587))  # Default to 587 if not set
+MAIL_SMTP_LOGIN = os.getenv("MAIL_SMTP_LOGIN")
+MAIL_SMTP_PASSWORD = os.getenv("MAIL_SMTP_PASSWORD")
+MAIL_FROM_EMAIL = os.getenv("MAIL_FROM_EMAIL")
 
 
 def compose_email_body(new_listings):
@@ -34,12 +37,12 @@ class Emailer:
 
     def connect(self):
         try:
-            self.transporter = smtplib.SMTP('smtp.gmail.com', 587)
+            self.transporter = smtplib.SMTP(MAIL_SMTP_SERVER, MAIL_SMTP_PORT)
             self.transporter.starttls()
-            self.transporter.login(EMAIL_USER, EMAIL_PASS)
-            logger.debug("SMTP connection established")
+            self.transporter.login(MAIL_SMTP_LOGIN, MAIL_SMTP_PASSWORD)
+            logger.debug("SMTP connection established with Mailgun")
         except Exception as e:
-            logger.error(f"Failed to connect to SMTP server: {e}")
+            logger.error(f"Failed to connect to Mailgun SMTP server: {e}")
             self.transporter = None
 
     def disconnect(self):
@@ -65,13 +68,13 @@ class Emailer:
 
         try:
             msg = MIMEMultipart()
-            msg['From'] = EMAIL_USER
+            msg['From'] = MAIL_FROM_EMAIL
             msg['To'] = ", ".join(recipients)
             msg['Subject'] = subject
 
             msg.attach(MIMEText(message, 'html'))
 
-            self.transporter.sendmail(EMAIL_USER, recipients, msg.as_string())
+            self.transporter.sendmail(MAIL_FROM_EMAIL, recipients, msg.as_string())
             logger.debug("Email sent successfully")
             return True
 
